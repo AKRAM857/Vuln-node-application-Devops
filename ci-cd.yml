@@ -1,0 +1,76 @@
+name: test
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    name: basic test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: install dependecies
+        run: npm install
+      - name: run test
+        run: npm run test
+  linting:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: install dependecies
+        run: npm install
+      - name: run lint
+        run: npm run lint
+  security-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    name: run security audit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: install dependecies
+        run: npm install
+      - name: security audit
+        run: npm audit --audit-level=critical
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: build image
+        run: docker build -t vuln-node .
+  cd:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+     - uses: actions/checkout@v4
+     - uses: actions/setup-node@v4
+       with:
+         node-version: 18
+     - name: build image
+       run: docker build -t vuln-node .
+     - name: stop old container
+       run: docker rm -f vuln-node-application 2>/dev/null || true
+
+     - name: run container
+       run: |
+             docker run -d \
+                --name vuln-node-application \
+                -p 5000:5000 \
+                 vuln-node:latest
